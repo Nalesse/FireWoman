@@ -7,30 +7,23 @@ public class PlayerController : MonoBehaviour
     //Description: Gets information from phone and controls player character
 
     //Objects & Components:
-    private Gyroscope gyro; //Main gyroscope on player's phone
+    private Transform orientator; //TEMP: thing to show phone orientation
 
     //Input Vars:
-    private Vector3 currentGyro; //Current gyro orientation of phone
+    private Vector3 orientation; //Normalized vector representing the spatial direction the back of the phone is facing (when phone is being held still)
 
     //RUNTIME METHODS:
     private void Awake()
     {
-        //Get Objects & Components:
-        gyro = Input.gyro; //Get gyro object from phone
-    }
-    private void Start()
-    {
-        StartCoroutine(InitializeGyro());
+        orientator = transform.GetChild(0).GetChild(0); //TEMP
     }
     private void Update()
     {
         //Input Stuff:
+        orientation = Input.acceleration; //Get acceleration from phone
 
+        //Input Debugging:
+        orientator.eulerAngles = (orientation * Mathf.Rad2Deg) + transform.GetChild(0).eulerAngles; //Move orientator to represent phone orientation (offset by container rotation so that it can be easily re-positioned)
+        print(Input.acceleration);
     }
-    IEnumerator InitializeGyro()
-     {
-         gyro.enabled = true;
-         yield return null;
-         Debug.Log(gyro.attitude); // attitude has data now
-     }
 }
