@@ -2,20 +2,22 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class PlayerController : MonoBehaviour
+public class InputManager : MonoBehaviour
 {
-    //Description: Gets information from phone and controls player character
+    //Description: Gets information from phone and refines to variables readable by control scripts
 
     //Objects & Components:
+    internal static InputManager manager; //Global object other scripts can reference easily
 
     //Settings:
+    [Header("Settings:")]
     public float checkOrientFreq;  //How frequently (in seconds between checks) the phone's orientation is checked
     public int orientAvgGroupSize; //How many orientation readings to remember at a time and average between (to smooth orientation data)
     public bool debugStuff;        //Used to turn debug logs and lines off and on
 
     //Input Vars:
-    private Vector3 orientation;    //Normalized vector representing the spatial direction the screen of the phone is facing (when phone is being held still)
-    private Vector3 avgOrientation; //Average of the last [orientationSmoothingGroupSize] orientation vectors
+    internal Vector3 orientation;    //Normalized vector representing the spatial direction the screen of the phone is facing (when phone is being held still)
+    internal Vector3 avgOrientation; //Average of the last [orientationSmoothingGroupSize] orientation vectors
 
     //Memory Vars:
     private List<Vector3> orientationMem = new List<Vector3>(); //List of past orientation readings used for smoothing
@@ -23,6 +25,11 @@ public class PlayerController : MonoBehaviour
     //RUNTIME METHODS:
     private void Awake()
     {
+        //Singleton-ize:
+        if (manager == null) manager = this; //Set this script to global input manager
+        else Destroy(this); //Destroy this script if there is more than one of it in scene
+
+        //Begin Coroutines:
         StartCoroutine(OrientationDataChecker()); //Start phone orientation checks (will repeat at given frequency for program runtime)
     }
     private void Update()
@@ -30,8 +37,8 @@ public class PlayerController : MonoBehaviour
         //Input Debugging:
         if (debugStuff)
         {
-            Debug.DrawLine(transform.position, orientation);
-            Debug.DrawLine(transform.position, avgOrientation, Color.red);
+            Debug.DrawLine(transform.position, orientation, Color.yellow);
+            Debug.DrawLine(transform.position, avgOrientation, Color.green);
             print(orientation);
         }
     }
