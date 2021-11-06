@@ -7,6 +7,7 @@ public class LevelManager : MonoBehaviour
 {
     //Description: Manages state of level which player moves through (controls core gameplay and visual functions related to the level/background)
     //NOTE: Level behavior and animations will vary drastically between proof-of-concept testing and actual prototype
+    //NOTE: Also governs game flow, including when player loses
 
     //Objects & Components:
     private Transform backgroundGroup; //TEMP reference to level for testing purposes
