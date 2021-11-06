@@ -21,6 +21,7 @@ public class LevelManager : MonoBehaviour
     public AnimationCurve stageSlideCurve;        //Describes how stage slides into position depending on lean value
     public Vector3 basePhoneOrientation;          //Orientation vector at which system assumes player is standing neutrally (should be able to be calibrated for)
     [Range(0, 1)] public float endStageSnapSpeed; //How fast stage snaps into end position when game is over
+    public float stageAdvancePos;                 //Y position stages advance to when player falls in its direction
     public float stageRecedePos;                  //Y position stages recede to when player falls in other direction
     public float respawnTime;                     //Time to wait (in seconds) (after player has died) before reloading the scene
 
@@ -88,13 +89,13 @@ public class LevelManager : MonoBehaviour
         Vector3 targetWaterPosition = new Vector3(); //Initialize container for water stage position
         if (playerAnimator.GetFloat("Frame") > 0.5) //FIRE death scene animation
         {
-            targetFirePosition.y = -slideRange.y;    //Set fire to advance down
+            targetFirePosition.y = -stageAdvancePos; //Set fire to advance down
             targetWaterPosition.y = -stageRecedePos; //Set water to recede down
         }
         else //WATER death scene animation
         {
-            targetFirePosition.y = stageRecedePos; //Set fire to recede up
-            targetWaterPosition.y = slideRange.y;  //Set water to advance up
+            targetFirePosition.y = stageRecedePos;   //Set fire to recede up
+            targetWaterPosition.y = stageAdvancePos; //Set water to advance up
         }
         backgroundGroup.transform.GetChild(0).position = Vector3.Lerp(backgroundGroup.transform.GetChild(0).position, targetWaterPosition, endStageSnapSpeed);  //Move water background toward target position
         backgroundGroup.transform.GetChild(1).position = Vector3.Lerp(backgroundGroup.transform.GetChild(1).position, targetFirePosition, endStageSnapSpeed); //Move fire background toward target position
