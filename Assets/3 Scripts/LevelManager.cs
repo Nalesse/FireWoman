@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using HotteStuff;
+using UnityEngine.SceneManagement;
 
 public class LevelManager : MonoBehaviour
 {
@@ -15,12 +16,16 @@ public class LevelManager : MonoBehaviour
 
     //Settings:
     [Header("Settings:")]
-    [Range(0, 1)] public float tiltSensitivity; //Increasing this will decrease the amount phone has to be tilted to fully tilt the player
-    public Vector2 slideRange;                  //The two ends of the range background elements slide when phone is being tilted
-    public AnimationCurve stageSlideCurve;      //Describes how stage slides into position depending on lean value
-    public Vector3 basePhoneOrientation;        //Orientation vector at which system assumes player is standing neutrally (should be able to be calibrated for)
+    [Range(0, 1)] public float tiltSensitivity;   //Increasing this will decrease the amount phone has to be tilted to fully tilt the player
+    public Vector2 slideRange;                    //The two ends of the range background elements slide when phone is being tilted
+    public AnimationCurve stageSlideCurve;        //Describes how stage slides into position depending on lean value
+    public Vector3 basePhoneOrientation;          //Orientation vector at which system assumes player is standing neutrally (should be able to be calibrated for)
+    [Range(0, 1)] public float endStageSnapSpeed; //How fast stage snaps into end position when game is over
+    public float stageRecedePos;                  //Y position stages recede to when player falls in other direction
+    public float respawnTime;                     //Time to wait (in seconds) (after player has died) before reloading the scene
 
     //Memory Vars:
+    internal float timeDead = 0; //How long player has been dead for, always zero when player is alive
     private Vector3 backgroundOrigPos; //Original position of level background elements
 
     private void Awake()
@@ -34,11 +39,21 @@ public class LevelManager : MonoBehaviour
     private void Update()
     {
         AnimateScene(); //Move background elements
+
+        //Increment Timers:
+        if (timeDead > 0) //Only increment death timer while player is dead
+        {
+            timeDead += Time.deltaTime; //Increment by deltaTime
+            if (timeDead >= respawnTime) SceneManager.LoadScene(SceneManager.GetActiveScene().name); //Reload scene if death timer exceeds given respawn time
+        }
     }
 
     private void AnimateScene()
     {
         //Function: Moves/animates background depending on player input
+
+        //Initial Check:
+        if (timeDead > 0) { AnimateSceneDead(); return; } //Use special scene animator if player is dead
 
         //Get & Refine Input Variable:
         Vector3 rawOrientation = InputManager.manager.avgOrientation; //Get smoothed phone orientation from inputManager
@@ -58,5 +73,30 @@ public class LevelManager : MonoBehaviour
         //Animate Player:
         float animatorTiltIntensity = 1f - ((tiltIntensity / 2) + 0.5f); //Get adjusted tilt intensity between 0 and 1 (and flipped)
         playerAnimator.SetFloat("Frame", animatorTiltIntensity); //Set lean based on tilt value
+        if (animatorTiltIntensity >= 1 || animatorTiltIntensity <= 0) //Player death by lean
+        {
+            playerAnimator.SetBool("Fell", true); //Animate player death (selected automatically by animator
+            timeDead += Time.deltaTime; //Indicate that player has died (by starting death timer)
+        }
+    }
+    private void AnimateSceneDead()
+    {
+        //Function: Scene animation stuff that happens after player has died (one background covers the entire screen while the other one recedes
+
+        //Animate Background:
+        Vector3 targetFirePosition = new Vector3(); //Initialize container for fire stage position
+        Vector3 targetWaterPosition = new Vector3(); //Initialize container for water stage position
+        if (playerAnimator.GetFloat("Frame") > 0.5) //FIRE death scene animation
+        {
+            targetFirePosition.y = -slideRange.y;    //Set fire to advance down
+            targetWaterPosition.y = -stageRecedePos; //Set water to recede down
+        }
+        else //WATER death scene animation
+        {
+            targetFirePosition.y = stageRecedePos; //Set fire to recede up
+            targetWaterPosition.y = slideRange.y;  //Set water to advance up
+        }
+        backgroundGroup.transform.GetChild(0).position = Vector3.Lerp(backgroundGroup.transform.GetChild(0).position, targetWaterPosition, endStageSnapSpeed);  //Move water background toward target position
+        backgroundGroup.transform.GetChild(1).position = Vector3.Lerp(backgroundGroup.transform.GetChild(1).position, targetFirePosition, endStageSnapSpeed); //Move fire background toward target position
     }
 }
