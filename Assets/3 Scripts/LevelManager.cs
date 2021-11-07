@@ -13,6 +13,9 @@ public class LevelManager : MonoBehaviour
     //Objects & Components:
     private Transform backgroundGroup; //TEMP reference to level for testing purposes
     private Animator playerAnimator;   //Reference to player animator
+    private AudioSource audioSource;   //Reference to level audio source
+    public AudioClip fireDeathSound;   //Sound that plays when player falls in fire
+    public AudioClip waterDeathSound;  //Sound that plays when player falls in water
 
     //Settings:
     [Header("Settings:")]
@@ -34,6 +37,7 @@ public class LevelManager : MonoBehaviour
         //Get Objects & Components:
         backgroundGroup = transform.GetChild(0); //Get background group container object
         playerAnimator = transform.GetChild(1).GetComponentInChildren<Animator>(); //Get player animator
+        audioSource = GetComponent<AudioSource>(); //Get audio source component
 
         backgroundOrigPos = backgroundGroup.position; //Get starting position of background element
     }
@@ -68,17 +72,28 @@ public class LevelManager : MonoBehaviour
         float fireSlide = Mathf.Lerp(slideRange.x, slideRange.y, stageSlideCurve.Evaluate(tiltIntensity));    //Find target elevation of fire side of level
         Vector3 targetPosWater = backgroundOrigPos + new Vector3(0, waterSlide, 0); //Get target vector for water side of level
         Vector3 targetPosFire = backgroundOrigPos + new Vector3(0, fireSlide, 0); //Get target vector for fire side of level
-        backgroundGroup.transform.GetChild(0).position = targetPosWater; //Move water background to target position
-        backgroundGroup.transform.GetChild(1).position = targetPosFire;  //Move fire background to target position
+        backgroundGroup.GetChild(0).position = targetPosWater; //Move water background to target position
+        backgroundGroup.GetChild(1).position = targetPosFire;  //Move fire background to target position
 
         //Animate Player:
         float animatorTiltIntensity = 1f - ((tiltIntensity / 2) + 0.5f); //Get adjusted tilt intensity between 0 and 1 (and flipped)
         playerAnimator.SetFloat("Frame", animatorTiltIntensity); //Set lean based on tilt value
         if (animatorTiltIntensity >= 1 || animatorTiltIntensity <= 0) //Player death by lean
         {
-            playerAnimator.SetBool("Fell", true); //Animate player death (selected automatically by animator
+            //Animate Death:
+            if (animatorTiltIntensity >= 1) audioSource.clip = fireDeathSound; //Death by fire, set corresponding audio
+            else audioSource.clip = waterDeathSound; //Death by water, set corresponding audio
+            audioSource.Play(); //Play death sound
+
+            //Indicate Death:
+            playerAnimator.SetBool("Fell", true); //Animate player death (selected automatically by animator)
             timeDead += Time.deltaTime; //Indicate that player has died (by starting death timer)
         }
+
+        //Adjust Audio Intensity:
+        backgroundGroup.GetChild(0).GetComponent<AudioSource>().volume = 1 - animatorTiltIntensity;     //Set loudness of water depending on how close player is
+        backgroundGroup.GetChild(1).GetComponent<AudioSource>().volume = animatorTiltIntensity; //Set loudness of fire depending on how close player is
+
     }
     private void AnimateSceneDead()
     {
@@ -97,7 +112,7 @@ public class LevelManager : MonoBehaviour
             targetFirePosition.y = stageRecedePos;   //Set fire to recede up
             targetWaterPosition.y = stageAdvancePos; //Set water to advance up
         }
-        backgroundGroup.transform.GetChild(0).position = Vector3.Lerp(backgroundGroup.transform.GetChild(0).position, targetWaterPosition, endStageSnapSpeed);  //Move water background toward target position
-        backgroundGroup.transform.GetChild(1).position = Vector3.Lerp(backgroundGroup.transform.GetChild(1).position, targetFirePosition, endStageSnapSpeed); //Move fire background toward target position
+        backgroundGroup.transform.GetChild(0).position = Vector3.Lerp(backgroundGroup.transform.GetChild(0).position, targetWaterPosition, endStageSnapSpeed * Time.deltaTime * 200);  //Move water background toward target position
+        backgroundGroup.transform.GetChild(1).position = Vector3.Lerp(backgroundGroup.transform.GetChild(1).position, targetFirePosition, endStageSnapSpeed * Time.deltaTime * 200); //Move fire background toward target position
     }
 }
